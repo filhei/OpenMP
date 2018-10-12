@@ -24,6 +24,44 @@ static inline short atop(char *str){
 	return -d;
 }
 
+//might have to avround
+static inline void f2str(char *str, float f){
+	int temp = f*100;
+	str[0] = temp/1000 + '0';
+	temp%=1000;
+	str[1] = temp/100 + '0';
+	temp%=100;
+	str[2] = '.';
+	str[3] = temp/10 + '0';
+	str[4] = temp%10 + '0';
+}
+
+static inline size_t i2str(char *str, int i){
+	if(i < 10){
+		str[0] = i + '0';
+		str[1] = '\n';
+		return 2;
+	}else if(i < 100){
+		str[0] = i/10 + '0';
+		str[1] = i%10 + '0';
+		str[2] = '\n';
+		return 3;
+	}else{
+		size_t length = 0;
+		for(int j = 1; j < 1e10 && i/j != 0; j*=10){
+			++length;
+		}
+		for(int j = 0; j < length; ++j){
+			str[length-j-1] = i%10 + '0';
+			i/=10;
+		}
+		str[length] = '\n';
+		return length+1;
+	}
+	return 0;
+}
+	
+
 static inline float to_float(short d){
 	return d/1000.0;
 }
@@ -53,10 +91,9 @@ static inline float point_dist(Point p1, Point p2){
 		);
 }
 
-
 int main(){
 	FILE *fp;
-	fp = fopen("input_files/cell_e1","r");
+	fp = fopen("input_files/cell_e4","r");
 	Point *buffer = (Point*) malloc(BUFFER_SIZE*sizeof(Point));
 	float *output = (float*) malloc(sizeof(float)*1e5*(1e5-1)/2);
 	read_file(fp, buffer);
@@ -66,22 +103,26 @@ int main(){
 		output_occurance[i] = 0;
 
 	int k = 0;
-	for(int i = 0; i < 1e1; ++i){
-		for(int j = 1e1-1; j > i; --j){
+	for(int i = 0; i < 1e4; ++i){
+		for(int j = 1e4-1; j > i; --j){
 			output_occurance[(size_t)(point_dist(buffer[i], buffer[j])/0.01 +1)] += 1;
 		}
 	}
-	char out_string[1000000];
-	char temp[100];
+	char out_string[20*3465];
+	char temp[20];
+	int size = 0, i2str_count = 0;
+	//might be a good idea to combine i2str and f2str for performance
 	for(int i = 0; i < 3465; ++i){
 		if(output_occurance[i]){
-			sprintf(temp, "%.2f %d\n", MAX_DIST*i/3464.0, output_occurance[i]);
-			strcat(out_string, temp);
-			memset(temp, 0, 100);
+			f2str(temp, MAX_DIST*i/3464.0);
+			temp[5] = ' ';
+			i2str_count = i2str(&temp[6], output_occurance[i]);
+			memcpy(&out_string[size], temp, 6+i2str_count);
+			size += 6 + i2str_count;
 		}
 	}
-
 	printf(out_string);
+	
 	fclose(fp);
 	free(output);
 	free(buffer);
