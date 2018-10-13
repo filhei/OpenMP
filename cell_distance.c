@@ -116,9 +116,12 @@ int main(){
 	for(int i = 0; i < 3465; ++i)
 		output_occurance[i] = 0;
 
+	//+0.5 seems to fix the rounding errors
 	for(int i = 0; i < 1e1; ++i){
 		for(int j = 1e1-1; j > i; --j){
-			output_occurance[(short)(point_dist(buffer[i], buffer[j])/0.01 +1)] += 1;
+			output_occurance[
+				(short)(point_dist(buffer[i], buffer[j])*100+0.5)
+			] += 1;
 		}
 	}
 	char out_string[20*3465];
