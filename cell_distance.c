@@ -136,7 +136,7 @@ int main(){
  	* Making two copies and calculate both in the same for loop
  	* seemed to slightly increase performance, might be worth it
  	*/
-/*	#pragma omp parallel for reduction(+:output_occurance[:OUT_BUFFER_SIZE])
+	#pragma omp parallel for reduction(+:output_occurance[:OUT_BUFFER_SIZE])
 	for(int i = 0; i < number_of_points; ++i){
 		for(int j = number_of_points-1; j > i; --j){
 			//awful locality, the index is random
@@ -159,7 +159,7 @@ int main(){
 		}
 	}
 	printf(out_string);
-*/	
+	
 	fclose(fp);
 	free(buffer);
 	return 0;
