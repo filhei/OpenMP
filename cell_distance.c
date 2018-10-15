@@ -59,14 +59,7 @@ static inline void str2point(char * restrict str, Point * restrict p){
 
 //converts float to string for output
 static inline void f2str(char *str, float f){
-	int temp = f*100;
-	str[0] = temp/1000 + '0';
-	temp%=1000;
-	str[1] = temp/100 + '0';
-	temp%=100;
-	str[2] = '.';
-	str[3] = temp/10 + '0';
-	str[4] = temp%10 + '0';
+	sprintf(str, f < 10 ? "0%.2f":"%.2f", f+0.005);
 }
 
 static inline size_t i2str(char *str, int i){
@@ -98,9 +91,11 @@ static inline size_t i2str(char *str, int i){
  * fread is performed by single thread, parsing multi*/	
 //input_file: the file to be read from, buffer: point buffer to hold the result
 static inline void read_file(FILE * restrict input_file, Point * restrict buffer){
+	//pragma single, share: file_content,bytes_read  with rest of threads, will probably make thread safe
 	char *file_content = (char*) malloc(24*POINTS_PER_BUFFER);
 	size_t bytes_read = fread(file_content,1,24*POINTS_PER_BUFFER, input_file), current_byte = 0;
 
+	// remove 'parallel' and add it for the pragma that calls the function
 	#pragma omp parallel for shared(buffer, file_content)
 	for(size_t current_byte = 0; current_byte < bytes_read; current_byte+=24){
 		str2point(&file_content[current_byte], &buffer[current_byte/24]);
@@ -113,17 +108,25 @@ static inline void read_file(FILE * restrict input_file, Point * restrict buffer
 }
 
 static inline short point_index(Point p1, Point p2){
-	return (short)sqrt((float)
+	return (short)(sqrtf(
 			(p1.x-p2.x)*(p1.x-p2.x) +
 			(p1.y-p2.y)*(p1.y-p2.y) +
 			(p1.z-p2.z)*(p1.z-p2.z)
-		)/10.0 + 0.5;
+		)/10.0);
 }
 
-int main(){
-	omp_set_num_threads(20);
+int main(int argc, char *argv[]){
+	if(argc != 2){
+		exit(-1);
+	}
+	if(argv[1][0] != '-' || argv[1][1] != 't'){
+		exit(-2);
+	}
+	size_t num_of_threads = strtol(&argv[1][2], NULL, 10);
+	omp_set_num_threads(num_of_threads);
 	FILE *fp;
 	fp = fopen("input_files/cell_e5","r");
+//	fp = fopen("cells","r");
 	size_t number_of_points = probe_num_of_points(fp);
 	Point *buffer = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
 	read_file(fp, buffer);
@@ -141,7 +144,7 @@ int main(){
 		for(int j = number_of_points-1; j > i; --j){
 			//awful locality, the index is random
 			++output_occurance[
-				point_index(buffer[i], buffer[j])
+			point_index(buffer[i], buffer[j])
 			];
 		}
 	}
@@ -151,7 +154,7 @@ int main(){
 	//might be a good idea to combine i2str and f2str for performance
 	for(int i = 0; i < 3465; ++i){
 		if(output_occurance[i]){
-			f2str(temp, MAX_DIST*i/((float) OUT_BUFFER_SIZE-1));
+			f2str(temp, MAX_DIST*i/(3465.0));
 			temp[5] = ' ';
 			i2str_count = i2str(&temp[6], output_occurance[i]);
 			memcpy(&out_string[size], temp, 6+i2str_count);
