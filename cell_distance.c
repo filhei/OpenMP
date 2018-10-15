@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define POINTS_PER_BUFFER 10000
+#define POINTS_PER_BUFFER 100000
 #define MAX_DIST 34.64
 #define OUT_BUFFER_SIZE 3465
 #define MAX_NUM_OF_POINTS 2147483648
@@ -18,18 +18,6 @@
 typedef struct{
 	short x, y, z;
 }Point;
-
-//this might not be necessary
-size_t probe_num_of_points(FILE *input_file){
-	char *buffer = (char*)malloc(24*POINTS_PER_BUFFER);
-	size_t num_of_points = 0, points_read = POINTS_PER_BUFFER;
-	for(points_read; points_read == POINTS_PER_BUFFER; num_of_points+=points_read){
-		points_read = fread(buffer, 24, POINTS_PER_BUFFER, input_file);
-	}
-	free(buffer);
-	fseek(input_file, 0, SEEK_SET);
-	return num_of_points;
-}
 
 //converts a row from the input file to a Point
 static inline void str2point(char * restrict str, Point * restrict p){
@@ -87,7 +75,6 @@ static inline size_t i2str(char *str, int i){
 	return 0;
 }
 
-// NEW VERSION OF read_file, return 1 if triangular, 0 if block
 static inline int read_points(
 			FILE * restrict input_file,
 			Point start_points[],
@@ -120,7 +107,7 @@ static inline int read_points(
 			}
 			// return value should reflect if block or triangular or if done
 		}
-		return bytes_read == 0 ? 2 : 1;
+		return feof(input_file) ? 2:1;
 	}
 	#pragma omp parallel
 	{
@@ -133,21 +120,16 @@ static inline int read_points(
 		#pragma omp single
 		*end_buffer_size = bytes_read/24;
 	}
-	return bytes_read == 0 ? 2 : 0; 
+	return 0;
 }
 
-
-// ========================
-
-static inline short point_index(Point p1, Point p2){
+static inline short point_index(Point p1, Point p2){ //use intrinsics (SIMD)
 	return (short)(sqrtf(
 			(p1.x-p2.x)*(p1.x-p2.x) +
 			(p1.y-p2.y)*(p1.y-p2.y) +
 			(p1.z-p2.z)*(p1.z-p2.z)
 		)/10.0);
 }
-
-
 
 static inline void calc_block(
 		Point start_points[],
@@ -173,7 +155,7 @@ static inline void calc_triangle(
 	#pragma omp parallel for reduction(+:output[:OUT_BUFFER_SIZE])
 	for(int i = 0; i < length; ++i) {
 		for(int j = i+1; j < length; ++j) {
-			++output[point_index(start_points[i], end_points[j])];
+			++output[point_index(start_points[i], end_points[j])]; //use different buffers to increase locality
 		}
 	}
 }
@@ -189,7 +171,7 @@ int main(int argc, char *argv[]){
 	size_t num_of_threads = strtol(&argv[1][2], NULL, 10);
 	omp_set_num_threads(num_of_threads);
 	FILE *fp;
-	fp = fopen("input_files/cell_e4","r");
+	fp = fopen("input_files/cell_e5","r");
 //	fp = fopen("cells","r");
 	Point *start_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
 	Point *end_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
@@ -197,20 +179,17 @@ int main(int argc, char *argv[]){
 	memset(output_occurance,0,sizeof(int)*OUT_BUFFER_SIZE);
 	size_t start_length, end_length;
 	int return_value;
-	while(1){ //TODO: check the return values, that they are correct
+	do{ //TODO: check the return values, that they are correct
 		return_value = read_points(fp, start_points, end_points, &start_length, &end_length);
 		if(return_value == 0){
 			calc_block(start_points, end_points, start_length, end_length, output_occurance);
 		}else if(return_value == 1){
 			calc_triangle(start_points, end_points, start_length, output_occurance);
-		}else{
-			break;
 		}
-	}
+	}while(return_value != 2);
 	char out_string[20*OUT_BUFFER_SIZE];
 	char temp[20];
 	int size = 0, i2str_count = 0;
-	//might be a good idea to combine i2str and f2str for performance
 	for(int i = 0; i < 3465; ++i){
 		if(output_occurance[i]){
 			f2str(temp, MAX_DIST*i/(3465.0));
