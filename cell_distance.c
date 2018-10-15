@@ -15,6 +15,12 @@
 #define OUT_BUFFER_SIZE 3465
 #define MAX_NUM_OF_POINTS 2147483648
 
+size_t desired_read_size = 1000;
+size_t nr_rows;
+size_t nr_cols;
+size_t current_buffer_size;
+size_t bookmark;
+
 typedef struct{
 	short x, y, z;
 }Point;
@@ -107,6 +113,24 @@ static inline void read_file(FILE * restrict input_file, Point * restrict buffer
 	}
 }
 
+// NEW VERSION OF read_file
+static inline void read_file_copy(FILE * restrict input_file, Point * restrict buffer) {
+	char *file_content = (char*) malloc(24 * desired_read_size);
+	size_t bytes_read = fread(file_content, 1, 24*desired_read_size, input_file);
+	
+	for(size_t current_byte = 0; current_byte < bytes_read, current_byte+=24){
+		str2point(&file_content[current_bute], &buffer[current_byte/24]);
+	}
+	free(file_content);
+	if (bytes_read < 24*desired_read_size) {
+		// Kolla att vi står längre fram än vad vi vill flytta bookmarket till
+		// Hoppa till bookmark + desired_read_size*24, increment bookmark
+	}
+}
+
+
+// ========================
+
 static inline short point_index(Point p1, Point p2){
 	return (short)(sqrtf(
 			(p1.x-p2.x)*(p1.x-p2.x) +
@@ -114,6 +138,29 @@ static inline short point_index(Point p1, Point p2){
 			(p1.z-p2.z)*(p1.z-p2.z)
 		)/10.0);
 }
+
+
+
+#pragma omp parallel
+void calc_block(*Point buffer_start, *Point buffer_end, *unsigned int output) {
+	
+	#pragma omp for reduction(+:output[:current_buffer_size])
+	for(int i = 0; i < nr_rows ; ++i) {
+		for(int j = 0; j < nr_cols; ++j) {
+			++output[point_index(buffer_start[i], buffer_end[j])];
+		}
+	}
+}
+
+void calc_triangle(*Point buffer, *unsigned int output) {
+
+	for(int i = 0; i < nr_rows-1; ++i) {
+		for(int j = i+1; j< nr_rows; ++j) {
+			++output[point_index(buffer[i], buffer[j])];
+		}
+	}
+}
+
 
 int main(int argc, char *argv[]){
 	if(argc != 2){
