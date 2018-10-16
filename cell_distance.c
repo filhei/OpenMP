@@ -10,8 +10,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define POINTS_PER_BUFFER 100000
-#define MAX_DIST 34.64
+#define POINTS_PER_BUFFER 10000
 #define OUT_BUFFER_SIZE 3465
 #define MAX_NUM_OF_POINTS 2147483648
 
@@ -54,8 +53,6 @@ static inline void index2str(char *str, short s){
 	s = s%100;
 	str[3] = s/10 + '0';
 	str[4] = s%10 + '0';
-	
-	//sprintf(str, f < 10 ? "0%.2f":"%.2f", f+0.005);
 }
 
 static inline size_t i2str(char *str, int i){
@@ -166,8 +163,8 @@ int main(int argc, char *argv[]){
 	size_t num_of_threads = strtol(&argv[1][2], NULL, 10);
 	omp_set_num_threads(num_of_threads);
 	FILE *fp;
-	//fp = fopen("input_files/cell_e5","r");
-	fp = fopen("cells","r");
+	fp = fopen("input_files/cell_e4","r");
+//	fp = fopen("cells","r");
 	Point *start_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
 	Point *end_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
 	unsigned int output_occurance[OUT_BUFFER_SIZE];
