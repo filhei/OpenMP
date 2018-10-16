@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define POINTS_PER_BUFFER 1
+#define POINTS_PER_BUFFER 100000
 #define MAX_DIST 34.64
 #define OUT_BUFFER_SIZE 3465
 #define MAX_NUM_OF_POINTS 2147483648
@@ -46,8 +46,16 @@ static inline void str2point(char * restrict const str, Point * restrict p){
 }
 
 //converts float to string for output
-static inline void f2str(char *str, const float f){
-	sprintf(str, f < 10 ? "0%.2f":"%.2f", f+0.005);
+static inline void index2str(char *str, short s){
+	str[0] = s/1000 + '0';
+	s = s%1000;
+	str[1] = s/100 + '0';
+	str[2] = '.';
+	s = s%100;
+	str[3] = s/10 + '0';
+	str[4] = s%10 + '0';
+	
+	//sprintf(str, f < 10 ? "0%.2f":"%.2f", f+0.005);
 }
 
 static inline size_t i2str(char *str, int i){
@@ -115,7 +123,7 @@ static inline const short point_index(const Point p1, const Point p2){ //use int
 			(p1.x-p2.x)*(p1.x-p2.x) +
 			(p1.y-p2.y)*(p1.y-p2.y) +
 			(p1.z-p2.z)*(p1.z-p2.z)
-		)/10.0);
+		)/10.0 + 0.5);
 }
 
 static inline void calc_block(
@@ -158,8 +166,8 @@ int main(int argc, char *argv[]){
 	size_t num_of_threads = strtol(&argv[1][2], NULL, 10);
 	omp_set_num_threads(num_of_threads);
 	FILE *fp;
-	fp = fopen("input_files/cell_e1","r");
-//	fp = fopen("cells","r");
+	//fp = fopen("input_files/cell_e5","r");
+	fp = fopen("cells","r");
 	Point *start_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
 	Point *end_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
 	unsigned int output_occurance[OUT_BUFFER_SIZE];
@@ -177,9 +185,9 @@ int main(int argc, char *argv[]){
 	char out_string[20*OUT_BUFFER_SIZE]; //hold the whole output_string
 	char temp[20];
 	int size = 0, i2str_count = 0;
-	for(int i = 0; i < 3465; ++i){
+	for(int i = 0; i < OUT_BUFFER_SIZE; ++i){
 		if(output_occurance[i]){
-			f2str(temp, i/(100.0));
+			index2str(temp, i);
 			temp[5] = ' ';
 			i2str_count = i2str(&temp[6], output_occurance[i]);
 			memcpy(&out_string[size], temp, 6+i2str_count);
