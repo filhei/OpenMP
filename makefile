@@ -1,18 +1,18 @@
 CC=gcc
-STD=-std=c99
+STD=-std=c11
 OFLAGS=-O2 -ffast-math
 LIBFLAGS=-lm -lgomp
 
 .PHONY: all clean
 
-all: cell_distance cell_debug
+all: cell_distance debug_cell
 
 cell_distance:cell_distance.c
 	$(CC) -fopenmp $(OFLAGS) $(STD) -o $@ $< $(LIBFLAGS)
 
-#cell_debug:cell_distance.c
-#	$(CC) $(STD) -g -o $@ $< $(LIBFLAGS)
+debug_cell: cell_distance.c
+	$(CC) -openmp $(STD) -g -o $@ $< $(LIBFLAGS)
 
 clean:
 	rm cell_distance
-	rm cell_debug
+	rm debug_cell
