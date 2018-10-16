@@ -163,10 +163,10 @@ int main(int argc, char *argv[]){
 	size_t num_of_threads = strtol(&argv[1][2], NULL, 10);
 	omp_set_num_threads(num_of_threads);
 	FILE *fp;
-	fp = fopen("input_files/cell_e4","r");
+	fp = fopen("input_files/cell_e5","r");
 //	fp = fopen("cells","r");
-	Point *start_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
-	Point *end_points = (Point*) malloc(POINTS_PER_BUFFER*sizeof(Point));
+	Point *start_points = (Point*) malloc(2*POINTS_PER_BUFFER*sizeof(Point));
+	Point *end_points = start_points+POINTS_PER_BUFFER;
 	unsigned int output_occurance[OUT_BUFFER_SIZE];
 	memset(output_occurance,0,sizeof(int)*OUT_BUFFER_SIZE);
 	size_t start_length, end_length;
@@ -195,6 +195,5 @@ int main(int argc, char *argv[]){
 
 	fclose(fp);
 	free(start_points);
-	free(end_points);
 	return 0;
 }
