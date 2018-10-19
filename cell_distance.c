@@ -1,9 +1,3 @@
-/* TODO
- * Must refill buffer from time to time
- * Make file reading thread safe
- * Optimize calculations
-*/
-
 #include <omp.h>
 #include <string.h>
 #include <stdio.h>
