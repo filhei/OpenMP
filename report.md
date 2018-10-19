@@ -104,14 +104,21 @@ typedef struct{
 2. int i, the integer to be converted.
 
 ## Maximal memory consumption
+
 The maximal memory allocated may at no time exceed 1025^3 bytes. We can do a rough estimate of the maximal memory usage by adding allocated memory for the largest set of distances. 
+
 -Coordiantes for every point are assumed to lie in the interval [-10,10], by calculating the maximal distance between two points in the three dimensional hypercube defined by said intervals we can compute the maximal number of distances rounded to two decimals. By the distance formula we get sqrt(3*(10-(-10))^2)=3465. Hence we know that a vector containg all possible distances stored as tye int is of size 3465 * 4 = 13824 bytes.
+
 -The start_point_buffer allocates 2 * POINTS_PER_BUFFER * sizeof(Point), where POINTS_PER_BUFFER is a constant set to 10000, the size was determined after som testing for better performance. Point is a struct containing 3 short which adds up to 6 bytes of allocated memory per point. Total memory allocated for the buffer thus becomes 2 * 10000 * 6 = 120000 bytes.
+
 -Only parts of the contents of the input file is read at a time and are stored in a buffer, file_content, which allocates memory for 10000 points. Each point is stored on an entire line, containing 24 char elements, in the input file. 
 POINTS_PER_BUFFER * 24 * sizeof(char) = 10000 * 24 * 1 = 24000 bytes.
+
 -For the output string, each line consist of 20 char elements and should be big enough to store every possible distance. 
 20 * OUT_BUFFER_SIZE * sizeof(char) = 20 * 3465 * 1 = 69120 bytes.
+
 -We should also take additional variables into account but they are comperativily small. Using a very generous estimate we can say that they never exceed 1000 bytes of memory.
+
 -We can therefore guarantee that the total allocated memory should never exceed: 120000 + 13824 + 24000 + 69120 + 1000 bytes = 227944 bytes << 1024^3 bytes
 
 ## Performance
