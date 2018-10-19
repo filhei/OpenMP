@@ -2,23 +2,13 @@
 
 ## Program layout
 
-* Includes
-* Defines
-* Point struct
-* str2point(char * str, Point * p)
-* index2str(char * str, short s)
-* size_t i2str(char * str, int i)
-* int read_points(File * input_file, Point * start_points,
-                  Point * end_points, size_t * start_buffer_size,
-                  size_t * end_buffer_size)
-* short point_index(Point p1, Point p2)
-* calc_block(Point * start_points, Point * end_points,
-             size_t start_length, size_t end_length, int * output)
-* calc_triangle(Point * start_points, Point * end_points
-                size_t length, int * output)
-* main
+Given a file containing the three dimensional positions of multiple cells the following program calculates the distance between all cells, sorts the distances and outputs how many times each distance occurs. To solve the task the entries of a N times N matrix have to be computed, where N is the number of cells. We call this matrix the cell matrix. The cell positions representing the rows will be called start cells, or start positions and the corresponding cell positions representing the columns will be called end cells or end positions. Consider the element (i, j) of the cell matrix to be the distance from cell i to cell j. Since the matrix is symmetric, only the upper triangular matrix has to be calculated. The diagonal elements will all be zero and need not be calculated.
 
-Blablabla meta text here. Introduction and overview etc. The functions are described now wow...
+A problem associated with this task is that large N will require a lot of memory to store the cells. The naïve way of solving the problem - loading all N cells at once and computing the whole matrix - can lead to the consumption of more memory than what is reasonable for a program.
+
+A solution to this problem is to only calculate a part of the cell matrix at a time. See figure 1 to visualize the idea. We define a buffer size that is acceptable. Let M be the number of points that the buffer is able to store. Then M/2 start cells and M/2 end cells are read from the file and stored in the buffer. The corresponding block of entries in the cell matrix are calculated and stored in an output array. By setting the size of the output array to the number of every possible distance and then only incrementing the correct index every time a distance is calculated, sorting is avoided. This output array will be of small size due to the constraints of the problem (TODO: calculate size). The scheme is repeated until all distances have been calculated.
+
+![](cell_matrix.png)
 
 ### main
 - Takes input -tX, where X is the number of threads to be used.
