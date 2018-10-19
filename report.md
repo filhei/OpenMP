@@ -1,4 +1,4 @@
-# Assignment report on random typing (hpcgpXXX)
+# Assignment report on random typing (hpcgp038)
 
 ## Program layout
 
