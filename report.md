@@ -8,7 +8,7 @@ A problem associated with this task is that large N will require a lot of memory
 
 A solution to this problem is to only calculate a part of the cell matrix at a time. See figure 1 to visualize the idea. We define a buffer size that is acceptable. Let M be the number of points that the buffer is able to store. Then M/2 start cells and M/2 end cells are read from the file and stored in the buffer. The corresponding block of entries in the cell matrix are calculated and stored in an output array. By setting the size of the output array to the number of every possible distance and then only incrementing the correct index every time a distance is calculated, sorting is avoided. This output array will be of small size due to the constraints of the problem (TODO: calculate size). The scheme is repeated until all distances have been calculated.
 
-![](cell_matrix.png)
+![Figure 1. Cell matrix](cell_matrix.png)
 
 ### main
 - Takes input -tX, where X is the number of threads to be used.
