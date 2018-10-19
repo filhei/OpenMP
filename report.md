@@ -97,18 +97,6 @@ If position_in_file is non zero and the end of the file has not been reached, th
 1. char * str, pointer to store the output.
 2. int i, the integer to be converted.
 
-//
-The program is implemented as a single main function in one file. The only required include files are standard headers:
-- in- and output via the command line (printf and scanf provided by stdio),
-- a source of randomness (srand and rand provided by stdlib),
-- a source of time to seed the random number generator (time).
-
-The corse layout of the main function consists of three parts:
-- initalization of the random number generator and variables,
-- a input-output loop providing the main functionality,
-- finalization (no memory clean up is needed).
-
-Functionality is provided by a while loop that asserts equality of two variables m and n. The former serves as the output number, the latter as the input number. Asserting equality of m and n thus implements the desired exit condition. Within the loop m is initialized as a random number modulo 1000. We take the absolute value of a random signed integer to gurantee a nonnegative result. Output and input is provided directly via printf and scanf. //
 
 ## Performance
 
