@@ -1,4 +1,4 @@
-# Assignment report on random typing (hpcgp038)
+# Assignment report on OpenMP (hpcgp038)
 
 ## Program layout
 
@@ -125,7 +125,8 @@ The calculations are done using double for loops. If the "start_points[]" and "e
 Since the distance between two points is random, the access to the occurance array is random. We are also accessing the point buffers right before we access the occurance array. The occurance array is small enough to, in theory, fit as a whole in the L1 data cache, but when we consider the access to the point buffers, the occurance array may not be stored as a whole there and has to be fetched from slower memory. However, the distances are basically normal distributed with a mean towards the middle. Chances are then that two succeeding points lie very close to eachother and both points may lie in the L1 cache.
 Perf showed that 509 386 832 L1 data cache misses happend, which is around 10% of the total number of points.
 
-We timed and average the execution time of our program.
+We timed and averaged the execution time of our program.
+
 |Points in file|Threads|Average run time|Goal time|
 |--------------|-------|----------------|---------|
 |10 000        |1      |0.170 s		|0.410 s  |
