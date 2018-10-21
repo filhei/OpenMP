@@ -69,6 +69,7 @@ typedef struct{
 - Input arguments:
 	- const Point p1, p1 represents the first point.
 	- const Point p2, p2 represents the second point.
+- Used sqrtf instead of sqrt since we only need single precision.
 - Returns a short containing the Euclidian distance between p1 and p2.
 
 ### str2point
@@ -99,25 +100,35 @@ The maximal memory allocated may at no time exceed 1024^3 bytes. We can do a rou
 
 - Coordiantes for every point are assumed to lie in the interval [-10,10], by calculating the maximal distance between two points in the three dimensional hypercube defined by said intervals we can compute the maximal number of distances rounded to two decimals. The maximum distance is \sqrt{3*(10-(-10))^{2}}=3465. Hence we know that a vector containg all possible distances stored as type int is of size 3465 * 4 = 13.824 KB.
 
-- The start_point_buffer allocates 2 * POINTS_PER_BUFFER * sizeof(Point), where POINTS_PER_BUFFER is a constant set to 10000, the size was determined after som testing for better performance. Point is a struct containing 3 shorts which adds up to 6 bytes of allocated memory per point. Total memory allocated for the buffer thus becomes 2 * 10000 * 6 = 120 KB.
+- The start_point_buffer allocates 2 * POINTS_PER_BUFFER * sizeof(Point), where POINTS_PER_BUFFER is a constant set to 100 000, the size was determined after som testing for better performance. Point is a struct containing 3 shorts which adds up to 6 bytes of allocated memory per point. Total memory allocated for the buffer thus becomes 2 * 100 000 * 6 = 1.2 MB.
 
-- Only parts of the input file are read at a time and are stored in a buffer, file_content, which allocates memory for 10000 points. Each point is stored on an entire line, containing 24 char elements. POINTS_PER_BUFFER * 24 * sizeof(char) = 10000 * 24 * 1 = 24 KB.
+- Only parts of the input file are read at a time and are stored in a buffer, file_content, which allocates memory for 10000 points. Each point is stored on an entire line, containing 24 char elements. POINTS_PER_BUFFER * 24 * sizeof(char) = 100 000 * 24 * 1 = 240 KB.
 
 -For the output string, each line consist of 20 char elements and should be big enough to store every possible distance. 20 * OUT_BUFFER_SIZE * sizeof(char) = 20 * 3465 * 1 = 69.120 KB.
 
 -We should also take additional variables into account but they are comperativily small. Using a very generous estimate we can say that they never exceed 1000 bytes of memory.
 
--We can therefore guarantee that the total allocated memory should never exceed: 120000 + 13824 + 24000 + 69120 + 1000 bytes = 228 KB << 1 GB.
+-We can therefore guarantee that the total allocated memory should never exceed: 1 200 000 + 13 824 + 240 000 + 69 120 + 1 000 bytes = 1.524 MB << 1 GB.
 
 ## Performance
+The first step for the program is to read data from the "cells" file. To reduce the number of reads and jumps in the file it reads to the "start_points[]"-buffer first, uses "memcpy()" to transfer this data to "end_points[]". If we aren't at EOF, the next time we read we only need to read into "end_points[]" and keep "start_points[]". The reading function keeps track of position in file for "start_points[]" and jumps there as soon as EOF is reached for "end_points[]". This way we only need to read half as many points in total (see figure above).
+To increase locality, "start_points[]" is allocated to be 2\*POINTS_PER_BUFFER and "end_points" points to the middle element, i.e the buffers are contigiuous in memory.
 
-*Experimentation reveals that the limiting factor to performance is the user input. Indeed, rand, printf, and scanf can be expected to be reasonably optimized, being part of the standard library. The user is the sole nonstandard component, which requires further performance evaluation. To this end, we have benchmarked several course participants. Results are summarized in the following table; Times are given in milliseconds.
+The parsing from text to points is done in parallel with a "parallel for" pragma. We found no significant improvement when we scheduled this task.
+The parsing function, "str2point()" first converts the string values of each coordinate into local short variables before accessing the given Point structure. This way we do all the calculations, then access, opposed to calculate, access p.x, calculate, access p.y... and it gave an increased performance.
 
-*| User name | N=10 | N=100 | N=1000 |
-*|:----:|----:|----:|----:|
-*| hpcuser573 | 1603 | 17680 | 135520 |
-*| hpcuser614 | 1663 | 18180 | 136570 |
-*| hpcuser637 | 1279 | 10550 |  92190 |
-*| hpcuser789 | 1386 | 14640 | 119840 |
+The majority of the time is spent on calculations of the distance, and the conversion to an index for the occurance vector. To these calculations efficiently we express the distance formula in factorized form inside the sqrt ((x1-x2)(x1-x2)+...) to reduce the number of terms and mixing of terms. This should in turn reduce the number of operations and may also reduce the number of times each element needs to be fetched from cache/memory inside that function.
+Our first implementation used "sqrt()" which returns a double precision float value. We then tried "sqrtf()" which return a single precision float (even that is more precision than we need) and noticed an improvement of about 10% in execution time. Later on, after we tweaked the parallelization for perforamance, we tried "sqrt()" again, but this time this we got a peformance increase close to 10%(!) and we are not sure why this is the case.
 
-*Benchmarks reveal a consistent pattern: hpcuser637 yields the fasted input. Consulting the course material we, however, could not find a theoretical explanation for the observed differences.
+The calculations are done using double for loops. If the "start_points[]" and "end_points[]" buffers contain different points we have a rectangular block and no interdependence in the two for loops, which enables us to include a "collapse(2)" into the pragma. The block can be divided into equally sized chunks and because of this we use a scheduler and include "schedule(static,chunk_size)" into the pragma. This gave a increase in performance. When the buffers are the same, i.e a triangular block the for loops have an interdependence and "collapse(2)" is not an option. Furthermore, it is difficult to split it up into equally sized blocks and the work load is uneven for the threads. We therefor used a dynamic scheduler instead and this gave a positive effect on performance. In both cases the chunk sizes depend on the buffer length and the number of threads. It should be large enough to occupy the threads for a while before going to/asking for a new chunk. Array reduction is used in both instances and the increase was huge. The reduction greatly decreases the number of writes to the occurance array. If a "critical" or "atomic" pragma was used, the occurance array would need to be fetched from shared memory every time a write occurs one core.
+
+Since the distance between two points is random, the access to the occurance array is random. We are also accessing the point buffers right before we access the occurance array. The occurance array is small enough to, in theory, fit as a whole in the L1 data cache, but when we consider the access to the point buffers, the occurance array may not be stored as a whole there and has to be fetched from slower memory. However, the distances are basically normal distributed with a mean towards the middle. Chances are then that two succeeding points lie very close to eachother and both points may lie in the L1 cache.
+Perf showed that 509 386 832 L1 data cache misses happend, which is around 10% of the total number of points.
+
+We timed and average the execution time of our program.
+|Points in file|Threads|Average run time|Goal time|
+|--------------|-------|----------------|---------|
+|10 000        |1      |0.170 s		|0.410 s  |
+|100 000       |5      |3.095 s         |8.200 s  |
+|100 000       |10     |1.595 s         |4.100 s  |
+|100 000       |20     |0.815 s		|2.600 s  |
